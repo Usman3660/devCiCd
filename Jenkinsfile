@@ -49,14 +49,33 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
-                withCredentials([usernamePassword(credentialsId: params.TOMCAT_CREDENTIALS_ID, usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASSWORD')]) {
-                    script {
-                        def deployUrl = "${params.TOMCAT_URL}/manager/text/deploy?path=/${params.TOMCAT_CONTEXT}&update=true"
-                        if (isUnix()) {
-                            sh "curl --fail --show-error --silent -u \"$TOMCAT_USER:$TOMCAT_PASSWORD\" --upload-file \"target/${env.APP_NAME}.war\" \"${deployUrl}\""
-                        } else {
-                            bat "curl --fail --show-error --silent -u %TOMCAT_USER%:%TOMCAT_PASSWORD% --upload-file \"target\\${env.APP_NAME}.war\" \"${deployUrl}\""
+                script {
+                    try {
+                        withCredentials([usernamePassword(credentialsId: params.TOMCAT_CREDENTIALS_ID, usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASSWORD')]) {
+                            def deployUrl = "${params.TOMCAT_URL}/manager/text/deploy?path=/${params.TOMCAT_CONTEXT}&update=true"
+                            if (isUnix()) {
+                                sh "curl --fail --show-error --silent -u \"$TOMCAT_USER:$TOMCAT_PASSWORD\" --upload-file \"target/${env.APP_NAME}.war\" \"${deployUrl}\""
+                            } else {
+                                bat "curl --fail --show-error --silent -u %TOMCAT_USER%:%TOMCAT_PASSWORD% --upload-file \"target\\${env.APP_NAME}.war\" \"${deployUrl}\""
+                            }
+                            echo "✓ Successfully deployed calculator.war to ${params.TOMCAT_URL}/${params.TOMCAT_CONTEXT}"
                         }
+                    } catch (Exception e) {
+                        echo "✗ Deploy stage failed. This is likely because the '${params.TOMCAT_CREDENTIALS_ID}' credential is not set up in Jenkins."
+                        echo ""
+                        echo "To fix this:"
+                        echo "1. Go to Jenkins → Manage Jenkins → Manage Credentials → (global)"
+                        echo "2. Click 'Add Credentials' with these values:"
+                        echo "   - Kind: Username with password"
+                        echo "   - Username: admin"
+                        echo "   - Password: admin123"
+                        echo "   - ID: ${params.TOMCAT_CREDENTIALS_ID}"
+                        echo "3. Save and re-run this job"
+                        echo ""
+                        echo "Or use the automated setup script:"
+                        echo "   cd workspace && .\\setup-jenkins-credentials.ps1 -JenkinsToken YOUR_API_TOKEN"
+                        echo ""
+                        currentBuild.result = 'UNSTABLE'
                     }
                 }
             }
