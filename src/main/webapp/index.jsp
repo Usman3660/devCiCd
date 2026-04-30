@@ -5,7 +5,7 @@
 <title>Calculator test1</title>
 </head>
 <body>
-<h1 style="text-align:center">Calculator</h1>
+<h1 style="text-align:center">New Calculator</h1>
       <form action="firstHomePage" method="get">
 <label>First number:</label>
 <input type="text" name="n1" />
